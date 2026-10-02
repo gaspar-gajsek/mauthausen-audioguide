@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#243d38">
+<title>Mauthausen · Audio Guide</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f2ed;color:#202925;font-family:system-ui,sans-serif;line-height:1.7}header{background:#243d38;color:white;padding:48px 24px}header>div,main,footer{max-width:760px;margin:auto}h1{font-size:clamp(2rem,7vw,3rem);line-height:1.2;margin:12px 0}header p{color:#d8e2dd;margin:0}main{padding:32px 24px}label{display:block;font-weight:650;margin-bottom:8px}select{width:100%;padding:14px;border:1px solid #8c9890;border-radius:8px;background:white;font:inherit;color:inherit;min-height:48px}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{margin-top:32px;padding:28px;background:white;border:1px solid #dddcd4;border-radius:12px}h2{margin-top:0;line-height:1.4}.badge{font-size:.8rem;letter-spacing:.09em;text-transform:uppercase}#status{border-left:3px solid #a49b7e;padding-left:16px}footer{padding:16px 24px 36px;color:#606a63;font-size:.9rem}@media(max-width:540px){.controls{grid-template-columns:1fr}header{padding:32px 24px}article{padding:22px}}
+</style>
+</head>
+<body>
+<header><div><span class="badge" id="badge"></span><h1>Mauthausen<br>Audio Guide</h1><p id="intro"></p></div></header>
+<main>
+<div class="controls">
+<div><label for="language" id="languageLabel"></label><select id="language"><option value="sl">Slovenščina</option><option value="de">Deutsch</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh">中文（简体）</option></select></div>
+<div><label for="station" id="stationLabel"></label><select id="station"></select></div>
+</div>
+<article aria-live="polite"><span class="badge" id="sectionLabel"></span><h2 id="heading"></h2><p id="status"></p></article>
+</main>
+<footer id="notice"></footer>
+<script>
+// Add reviewed transcripts to each station's texts object, keyed by language code.
+const stations=[
+{id:'01',titles:{sl:'Sistem koncentracijskih taborišč Mauthausen',de:'KZ-System Mauthausen',en:'The Mauthausen concentration camp system',ja:'マウトハウゼン強制収容所の体系',ko:'마우트하우젠 강제수용소 체계',zh:'毛特豪森集中营体系'},texts:{}},
+{id:'02',titles:{sl:'Gradnja taborišča',de:'Errichtung des Lagers',en:'Construction of the camp',ja:'収容所の建設',ko:'수용소 건설',zh:'集中营的建立'},texts:{}},
+{id:'03',titles:{sl:'»Sanitetno taborišče«',de:'„Sanitätslager“',en:'“Infirmary camp”',ja:'「医療収容所」',ko:'“의무 수용소”',zh:'“医务营”'},texts:{}},
+{id:'24',titles:{sl:'Osvoboditev',de:'Befreiung',en:'Liberation',ja:'解放',ko:'해방',zh:'解放'},texts:{}}
+];
+const ui={
+sl:{badge:'Poskusna različica',intro:'Izberi jezik in postajo za prikaz besedila.',language:'Jezik',station:'Postaja',section:'Transkript',empty:'Besedilo za to postajo še ni dodano. Zvočni posnetki še niso na voljo.',notice:'Neuradna poskusna stran. Naslovi so delovni prevodi; vsebina še ni strokovno pregledana.'},
+de:{badge:'Testversion',intro:'Sprache und Station auswählen, um den Text anzuzeigen.',language:'Sprache',station:'Station',section:'Transkript',empty:'Der Text für diese Station wurde noch nicht hinzugefügt. Audioaufnahmen sind noch nicht verfügbar.',notice:'Inoffizielle Testseite. Die Titel sind Arbeitsübersetzungen; die Inhalte wurden noch nicht fachlich geprüft.'},
+en:{badge:'Test version',intro:'Choose a language and station to view the text.',language:'Language',station:'Station',section:'Transcript',empty:'The text for this station has not been added yet. Audio recordings are not yet available.',notice:'Unofficial test page. Titles are draft translations; content has not yet been reviewed by specialists.'},
+ja:{badge:'試作版',intro:'言語と見学地点を選択してください。',language:'言語',station:'見学地点',section:'テキスト',empty:'この地点のテキストはまだ追加されていません。音声もまだ利用できません。',notice:'非公式の試作ページです。タイトルは仮訳であり、内容はまだ専門家による確認を受けていません。'},
+ko:{badge:'시험 버전',intro:'언어와 관람 지점을 선택하세요.',language:'언어',station:'관람 지점',section:'텍스트',empty:'이 지점의 텍스트는 아직 추가되지 않았습니다. 음성 녹음도 아직 제공되지 않습니다.',notice:'비공식 시험 페이지입니다. 제목은 임시 번역이며, 내용은 아직 전문가의 검토를 받지 않았습니다.'},
+zh:{badge:'测试版',intro:'请选择语言和参观站点。',language:'语言',station:'参观站点',section:'文字稿',empty:'此站点的文字稿尚未添加。音频暂未提供。',notice:'非官方测试页面。标题为暂译，内容尚未经专业审核。'}
+};
+const language=document.getElementById('language'),station=document.getElementById('station');
+const query=new URLSearchParams(location.search);
+if(ui[query.get('lang')])language.value=query.get('lang');
+let chosen=stations.some(s=>s.id===query.get('station'))?query.get('station'):'01';
+function render(){
+const lang=language.value,t=ui[lang];document.documentElement.lang=lang;
+for(const [id,key] of Object.entries({badge:'badge',intro:'intro',languageLabel:'language',stationLabel:'station',sectionLabel:'section',notice:'notice'}))document.getElementById(id).textContent=t[key];
+station.replaceChildren(...stations.map(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.id+' · '+s.titles[lang];return o}));station.value=chosen;
+const s=stations.find(s=>s.id===chosen);document.getElementById('heading').textContent=s.id+' · '+s.titles[lang];
+const body=document.getElementById('status');body.textContent=s.texts[lang]||t.empty;body.style.whiteSpace='pre-line';
+const url=new URL(location.href);url.searchParams.set('lang',lang);url.searchParams.set('station',chosen);history.replaceState(null,'',url);
+}
+language.addEventListener('change',render);station.addEventListener('change',()=>{chosen=station.value;render()});render();
+</script>
+</body>
+</html>
