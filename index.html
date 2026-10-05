@@ -1,25 +1,20 @@
 <!doctype html>
-<html lang="sl">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#243d38">
-<title>Mauthausen · Audio Guide</title>
+<meta name="theme-color" content="#243d38"><title>Mauthausen Audioguide</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f2ed;color:#202925;font-family:system-ui,sans-serif;line-height:1.7}header{background:#243d38;color:white;padding:48px 24px}header>div,main,footer{max-width:760px;margin:auto}h1{font-size:clamp(2rem,7vw,3rem);line-height:1.2;margin:12px 0}header p{color:#d8e2dd;margin:0}main{padding:32px 24px}label{display:block;font-weight:650;margin-bottom:8px}select{width:100%;padding:14px;border:1px solid #8c9890;border-radius:8px;background:white;font:inherit;color:inherit;min-height:48px}.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{margin-top:32px;padding:28px;background:white;border:1px solid #dddcd4;border-radius:12px}h2{margin-top:0;line-height:1.4}.badge{font-size:.8rem;letter-spacing:.09em;text-transform:uppercase}#status{border-left:3px solid #a49b7e;padding-left:16px}footer{padding:16px 24px 36px;color:#606a63;font-size:.9rem}@media(max-width:540px){.controls{grid-template-columns:1fr}header{padding:32px 24px}article{padding:22px}}
-</style>
-</head>
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f4f2ed;color:#202925;font-family:system-ui,sans-serif;line-height:1.65}header{max-width:900px;margin:auto;padding:48px 24px 20px}h1{font-size:clamp(1.8rem,6vw,2.8rem);line-height:1.2;margin:0}main{max-width:760px;margin:auto;padding:24px}body:not(.ready) header{text-align:center;padding-top:16vh}label{display:block;font-weight:650;margin-bottom:10px}select{width:100%;min-height:48px;padding:12px;background:white;border:1px solid #83938c;border-radius:8px;color:inherit;font:inherit}select:focus-visible{outline:3px solid #467e6e;outline-offset:3px}#languageBox{max-width:440px;margin:16px auto 0;padding:28px;background:white;border:1px solid #dddcd4;border-radius:12px}.ready header{padding-top:100px}.ready #languageBox{position:absolute;right:20px;top:16px;margin:0;padding:0;border:0;background:transparent;max-width:230px}.ready #languageBox label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ready #languageBox select{font-size:.95rem}#stationBox{padding:26px;background:white;border:1px solid #dddcd4;border-radius:12px}article{margin-top:24px;padding:26px;background:white;border:1px solid #dddcd4;border-radius:12px}h2{margin-top:0;font-size:1.4rem;line-height:1.4}#status{white-space:pre-line}footer{max-width:760px;margin:auto;padding:8px 24px 32px;color:#606a63;font-size:.85rem}.badge{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}@media(prefers-reduced-motion:no-preference){#stationBox,article{animation:appear .25s ease-out}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}}
+</style></head>
 <body>
-<header><div><span class="badge" id="badge"></span><h1>Mauthausen<br>Audio Guide</h1><p id="intro"></p></div></header>
+<header><h1>Mauthausen Audioguide</h1></header>
 <main>
-<div class="controls">
-<div><label for="language" id="languageLabel"></label><select id="language"><option value="sl">Slovenščina</option><option value="de">Deutsch</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh">中文（简体）</option></select></div>
-<div><label for="station" id="stationLabel"></label><select id="station"></select></div>
-</div>
-<article aria-live="polite"><span class="badge" id="sectionLabel"></span><h2 id="heading"></h2><p id="status"></p></article>
-</main>
-<footer id="notice"></footer>
+<div id="languageBox"><label id="languageLabel" for="language">Choose your language</label><select id="language"><option value="" selected disabled>Select a language…</option><option value="en">English</option><option value="de">Deutsch</option><option value="sl">Slovenščina</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh">中文（简体）</option></select></div>
+<div id="stationBox" hidden><label id="stationLabel" for="station"></label><select id="station"></select></div>
+<article id="transcript" hidden aria-live="polite"><span class="badge" id="sectionLabel"></span><h2 id="heading"></h2><p id="status"></p></article>
+</main><footer id="notice" hidden></footer>
+<noscript><p style="text-align:center">Please enable JavaScript to choose a language and station.</p></noscript>
 <script>
-// Add reviewed transcripts to each station's texts object, keyed by language code.
 const stations=[
 {id:'01',titles:{sl:'Sistem koncentracijskih taborišč Mauthausen',de:'KZ-System Mauthausen',en:'The Mauthausen concentration camp system',ja:'マウトハウゼン強制収容所の体系',ko:'마우트하우젠 강제수용소 체계',zh:'毛特豪森集中营体系'},texts:{}},
 {id:'02',titles:{sl:'Gradnja taborišča',de:'Errichtung des Lagers',en:'Construction of the camp',ja:'収容所の建設',ko:'수용소 건설',zh:'集中营的建立'},texts:{}},
@@ -34,19 +29,22 @@ ja:{badge:'試作版',intro:'言語と見学地点を選択してください。
 ko:{badge:'시험 버전',intro:'언어와 관람 지점을 선택하세요.',language:'언어',station:'관람 지점',section:'텍스트',empty:'이 지점의 텍스트는 아직 추가되지 않았습니다. 음성 녹음도 아직 제공되지 않습니다.',notice:'비공식 시험 페이지입니다. 제목은 임시 번역이며, 내용은 아직 전문가의 검토를 받지 않았습니다.'},
 zh:{badge:'测试版',intro:'请选择语言和参观站点。',language:'语言',station:'参观站点',section:'文字稿',empty:'此站点的文字稿尚未添加。音频暂未提供。',notice:'非官方测试页面。标题为暂译，内容尚未经专业审核。'}
 };
+
+const prompts={en:'Choose a station…',de:'Station auswählen…',sl:'Izberi postajo…',ja:'見学地点を選択…',ko:'관람 지점을 선택하세요…',zh:'请选择参观站点…'};
 const language=document.getElementById('language'),station=document.getElementById('station');
-const query=new URLSearchParams(location.search);
-if(ui[query.get('lang')])language.value=query.get('lang');
-let chosen=stations.some(s=>s.id===query.get('station'))?query.get('station'):'01';
+let chosen='';
 function render(){
-const lang=language.value,t=ui[lang];document.documentElement.lang=lang;
-for(const [id,key] of Object.entries({badge:'badge',intro:'intro',languageLabel:'language',stationLabel:'station',sectionLabel:'section',notice:'notice'}))document.getElementById(id).textContent=t[key];
-station.replaceChildren(...stations.map(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.id+' · '+s.titles[lang];return o}));station.value=chosen;
-const s=stations.find(s=>s.id===chosen);document.getElementById('heading').textContent=s.id+' · '+s.titles[lang];
-const body=document.getElementById('status');body.textContent=s.texts[lang]||t.empty;body.style.whiteSpace='pre-line';
-const url=new URL(location.href);url.searchParams.set('lang',lang);url.searchParams.set('station',chosen);history.replaceState(null,'',url);
+ const lang=language.value,t=ui[lang];if(!t)return;
+ document.documentElement.lang=lang;document.body.classList.add('ready');
+ document.getElementById('languageLabel').textContent=t.language;
+ document.getElementById('stationBox').hidden=false;
+ document.getElementById('stationLabel').textContent=t.station;
+ const prompt=document.createElement('option');prompt.value='';prompt.textContent=prompts[lang];prompt.disabled=true;
+ station.replaceChildren(prompt,...stations.map(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.id+' · '+s.titles[lang];return o}));station.value=chosen;
+ document.getElementById('notice').hidden=false;document.getElementById('notice').textContent=t.notice;
+ const selected=stations.find(s=>s.id===chosen);document.getElementById('transcript').hidden=!selected;
+ if(selected){document.getElementById('sectionLabel').textContent=t.section;document.getElementById('heading').textContent=selected.id+' · '+selected.titles[lang];document.getElementById('status').textContent=selected.texts[lang]||t.empty;}
 }
-language.addEventListener('change',render);station.addEventListener('change',()=>{chosen=station.value;render()});render();
-</script>
-</body>
-</html>
+language.addEventListener('change',()=>{render();if(!chosen)station.focus()});
+station.addEventListener('change',()=>{chosen=station.value;render()});
+</script></body></html>
