@@ -5,13 +5,13 @@
 <meta name="theme-color" content="#243d38"><title>Mauthausen Audioguide</title>
 <style>
 *{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f4f2ed;color:#202925;font-family:system-ui,sans-serif;line-height:1.65}header{max-width:900px;margin:auto;padding:48px 24px 20px}h1{font-size:clamp(1.8rem,6vw,2.8rem);line-height:1.2;margin:0}main{max-width:760px;margin:auto;padding:24px}body:not(.ready) header{text-align:center;padding-top:16vh}label{display:block;font-weight:650;margin-bottom:10px}select{width:100%;min-height:48px;padding:12px;background:white;border:1px solid #83938c;border-radius:8px;color:inherit;font:inherit}select:focus-visible{outline:3px solid #467e6e;outline-offset:3px}#languageBox{max-width:440px;margin:16px auto 0;padding:28px;background:white;border:1px solid #dddcd4;border-radius:12px}.ready header{padding-top:100px}.ready #languageBox{position:absolute;right:20px;top:16px;margin:0;padding:0;border:0;background:transparent;max-width:230px}.ready #languageBox label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ready #languageBox select{font-size:.95rem}#stationBox{padding:26px;background:white;border:1px solid #dddcd4;border-radius:12px}article{margin-top:24px;padding:26px;background:white;border:1px solid #dddcd4;border-radius:12px}h2{margin-top:0;font-size:1.4rem;line-height:1.4}#status{white-space:pre-line}footer{max-width:760px;margin:auto;padding:8px 24px 32px;color:#606a63;font-size:.85rem}.badge{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}@media(prefers-reduced-motion:no-preference){#stationBox,article{animation:appear .25s ease-out}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}}
-</style></head>
+button{font:inherit;border:1px solid #83938c;border-radius:8px;padding:10px 16px;min-height:44px;background:#243d38;color:white;cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid #467e6e;outline-offset:3px}.audio-buttons{display:flex;flex-wrap:wrap;gap:10px}#audioBox{border-bottom:1px solid #dddcd4;padding-bottom:18px;margin-bottom:20px}#audioStatus{font-size:.9rem;color:#606a63}</style></head>
 <body>
 <header><h1>Mauthausen Audioguide</h1></header>
 <main>
 <div id="languageBox"><label id="languageLabel" for="language">Choose your language</label><select id="language"><option value="" selected disabled>Select a language…</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="zh">中文（简体）</option></select></div>
 <div id="stationBox" hidden><label id="stationLabel" for="station"></label><select id="station"></select></div>
-<article id="transcript" hidden aria-live="polite"><span class="badge" id="sectionLabel"></span><h2 id="heading"></h2><p id="status"></p></article>
+<article id="transcript" hidden aria-live="polite"><span class="badge" id="sectionLabel"></span><h2 id="heading"></h2><section id="audioBox"><div class="audio-buttons"><button id="listen" type="button" disabled></button><button id="pause" type="button" disabled></button><button id="stop" type="button" disabled></button></div><p id="audioStatus" role="status"></p></section><p id="status"></p></article>
 </main><footer id="notice" hidden></footer>
 <noscript><p style="text-align:center">Please enable JavaScript to choose a language and station.</p></noscript>
 <script>
@@ -31,8 +31,9 @@ let chosen='';
 let pending;
 const cache=new Map();
 function render(){
+ stopReading();textReady=false;
  const lang=language.value,t=ui[lang];if(!t)return;
- document.documentElement.lang=lang;document.body.classList.add('ready');
+ document.documentElement.lang=lang;updateAudio();document.body.classList.add('ready');
  document.getElementById('languageLabel').textContent=t.language;
  document.getElementById('stationBox').hidden=false;
  document.getElementById('stationLabel').textContent=t.station;
@@ -54,9 +55,25 @@ async function loadText(selected,lang){
   if(text===undefined){const response=await fetch(path,{signal:controller.signal});if(!response.ok)throw new Error('HTTP '+response.status);text=(await response.text()).replace(/^\uFEFF/,'');if(/^\s*<!doctype html/i.test(text))throw new Error('Unexpected HTML');cache.set(path,text);}
   if(controller.signal.aborted||language.value!==lang||chosen!==selected.id)return;
   const lines=text.split(/\r?\n/);const first=lines.findIndex(line=>line.trim());
-  document.getElementById('status').textContent=lines.slice(first+1).join('\n').trim();
+  document.getElementById('status').textContent=lines.slice(first+1).join('\n').trim();textReady=true;updateAudio();
  }catch(error){if(error.name!=='AbortError'&&language.value===lang&&chosen===selected.id)document.getElementById('status').textContent=errors[lang];}
 }
-language.addEventListener('change',()=>{render();if(!chosen)station.focus()});
+const audioUI={
+en:{listen:'Listen',pause:'Pause',resume:'Resume',stop:'Stop',ready:'Computer-generated voice. Pronunciation may be imperfect.',none:'No voice for this language is available on this device.',unsupported:'This browser does not support text-to-speech.',reading:'Reading…',paused:'Paused.',error:'Reading failed. Try again or use another browser.'},
+ja:{listen:'読み上げ',pause:'一時停止',resume:'再開',stop:'停止',ready:'合成音声です。発音が正確でない場合があります。',none:'この端末では、この言語の音声を利用できません。',unsupported:'このブラウザーは読み上げに対応していません。',reading:'読み上げ中…',paused:'一時停止中。',error:'読み上げに失敗しました。再試行するか、別のブラウザーをご利用ください。'},
+ko:{listen:'듣기',pause:'일시 정지',resume:'계속 듣기',stop:'정지',ready:'컴퓨터 합성 음성입니다. 발음이 정확하지 않을 수 있습니다.',none:'이 기기에서 해당 언어의 음성을 사용할 수 없습니다.',unsupported:'이 브라우저는 텍스트 읽기를 지원하지 않습니다.',reading:'읽는 중…',paused:'일시 정지됨.',error:'읽기에 실패했습니다. 다시 시도하거나 다른 브라우저를 사용하세요.'},
+zh:{listen:'朗读',pause:'暂停',resume:'继续',stop:'停止',ready:'电脑合成语音，发音可能不完全准确。',none:'此设备没有可用的该语言语音。',unsupported:'此浏览器不支持文字朗读。',reading:'正在朗读…',paused:'已暂停。',error:'朗读失败。请重试或使用其他浏览器。'}};
+const synthesis=('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window)?window.speechSynthesis:null;
+let textReady=false,reading=false,paused=false,run=0,utterance=null,parts=[],partIndex=0;
+function voiceForLanguage(){if(!synthesis)return null;const lang=language.value;const voices=synthesis.getVoices().filter(v=>v.lang.toLowerCase().replace('_','-').split('-')[0]===lang);return voices.find(v=>v.lang.toLowerCase()==={en:'en-gb',ja:'ja-jp',ko:'ko-kr',zh:'zh-cn'}[lang])||voices[0]||null;}
+function updateAudio(message){const t=audioUI[language.value];if(!t)return;const voice=voiceForLanguage();document.getElementById('listen').textContent=t.listen;document.getElementById('pause').textContent=paused?t.resume:t.pause;document.getElementById('stop').textContent=t.stop;document.getElementById('listen').disabled=!textReady||!voice||reading;document.getElementById('pause').disabled=!reading;document.getElementById('stop').disabled=!reading;document.getElementById('audioStatus').textContent=message||(!synthesis?t.unsupported:!voice?t.none:paused?t.paused:reading?t.reading:t.ready);}
+function stopReading(){run++;reading=false;paused=false;utterance=null;if(synthesis)synthesis.cancel();updateAudio();}
+function speakPart(token,voice){if(token!==run||!reading)return;if(partIndex>=parts.length){reading=false;utterance=null;updateAudio();return;}utterance=new SpeechSynthesisUtterance(parts[partIndex]);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=1;utterance.onend=()=>{if(token!==run)return;partIndex++;if(!paused)speakPart(token,voice);};utterance.onerror=e=>{if(token!==run)return;if(e.error==='interrupted'||e.error==='canceled')return;reading=false;paused=false;updateAudio(audioUI[language.value].error);};synthesis.speak(utterance);}
+document.getElementById('listen').addEventListener('click',()=>{const voice=voiceForLanguage();if(!textReady||!voice)return;stopReading();const text=document.getElementById('heading').textContent+'.\n'+document.getElementById('status').textContent;parts=text.match(/[^。！？.!?\n]+[。！？.!?]?|[。！？.!?]/gu)||[text];parts=parts.flatMap(part=>{const chars=Array.from(part);const out=[];while(chars.length)out.push(chars.splice(0,180).join(''));return out;}).filter(part=>part.trim());partIndex=0;reading=true;updateAudio();speakPart(run,voice);});
+document.getElementById('pause').addEventListener('click',()=>{if(!reading)return;paused=!paused;if(paused)synthesis.pause();else{if(synthesis.paused)synthesis.resume();else speakPart(run,voiceForLanguage());}updateAudio();});
+document.getElementById('stop').addEventListener('click',stopReading);
+if(synthesis)synthesis.addEventListener('voiceschanged',()=>updateAudio());
+window.addEventListener('pagehide',stopReading);
+language.addEventListener('change' ,()=>{render();if(!chosen)station.focus()});
 station.addEventListener('change',()=>{chosen=station.value;render()});
 </script></body></html>
